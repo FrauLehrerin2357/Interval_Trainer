@@ -4,6 +4,7 @@ import {
   createQuestion,
   createMasterQuestion,
   createQualityQuestion,
+  createAdvancedQuestion,
   intervalNames,
   intervalOptions,
   masterIntervalNames,
@@ -11,6 +12,7 @@ import {
   masterQualityOptions,
   qualityNames,
   qualityOptionsFor,
+  advancedQualityOptionsFor,
   type IntervalNumber,
   type Note,
   type IntervalQuality,
@@ -20,7 +22,7 @@ import {
   type QualityQuestion,
 } from './domain'
 
-type Screen = 'home' | 'training' | 'quality-training' | 'master-training'
+type Screen = 'home' | 'training' | 'quality-training' | 'quality-training-copy' | 'master-training'
 type Feedback = { correct: boolean; selected: IntervalNumber }
 type QualityFeedback =
   | { step: 'interval'; correct: boolean; selected: IntervalNumber }
@@ -106,9 +108,10 @@ function Header({ onHome, showBack }: { onHome?: () => void; showBack?: boolean 
   )
 }
 
-function Home({ onStartBasic, onStartQuality, onStartMaster }: {
+function Home({ onStartBasic, onStartQuality, onStartQualityCopy, onStartMaster }: {
   onStartBasic: () => void
   onStartQuality: () => void
+  onStartQualityCopy: () => void
   onStartMaster: () => void
 }) {
   return (
@@ -137,8 +140,17 @@ function Home({ onStartBasic, onStartQuality, onStartMaster }: {
             </span>
             <span className="card-arrow" aria-hidden="true">→</span>
           </button>
-          <button className="app-card" type="button" onClick={onStartMaster}>
+          <button className="app-card" type="button" onClick={onStartQualityCopy}>
             <span className="card-number">03</span>
+            <span className="card-symbol card-accidentals" aria-hidden="true">♯♭</span>
+            <span className="card-copy">
+              <strong>Intervall bestimmen · erweitert</strong>
+              <small>Erweiterte Qualitäten und Tritonus erkennen</small>
+            </span>
+            <span className="card-arrow" aria-hidden="true">→</span>
+          </button>
+          <button className="app-card" type="button" onClick={onStartMaster}>
+            <span className="card-number">04</span>
             <span className="card-symbol card-master-symbol" aria-hidden="true">♭♯</span>
             <span className="card-copy">
               <strong>Intervall-Master</strong>
@@ -148,7 +160,7 @@ function Home({ onStartBasic, onStartQuality, onStartMaster }: {
           </button>
         </div>
       </section>
-      <footer><span>03 ANWENDUNGEN</span><span className="footer-note">Weitere Übungen folgen.</span></footer>
+      <footer><span>04 ANWENDUNGEN</span><span className="footer-note">Weitere Übungen folgen.</span></footer>
     </main>
   )
 }
@@ -255,8 +267,10 @@ function Training({ onHome }: { onHome: () => void }) {
   )
 }
 
-function QualityTraining({ onHome }: { onHome: () => void }) {
-  const [question, setQuestion] = useState<QualityQuestion>(() => createQualityQuestion())
+function QualityTraining({ onHome, advanced = false }: { onHome: () => void; advanced?: boolean }) {
+  const [question, setQuestion] = useState<QualityQuestion>(
+    () => advanced ? createAdvancedQuestion() : createQualityQuestion(),
+  )
   const [step, setStep] = useState<'interval' | 'quality'>('interval')
   const [feedback, setFeedback] = useState<QualityFeedback | null>(null)
   const [intervalWasCorrect, setIntervalWasCorrect] = useState(true)
@@ -294,7 +308,7 @@ function QualityTraining({ onHome }: { onHome: () => void }) {
       wrong: current.wrong + Number(!correct || !intervalWasCorrect),
     }))
     transitionTimer.current = window.setTimeout(() => {
-      setQuestion(createQualityQuestion())
+      setQuestion(advanced ? createAdvancedQuestion() : createQualityQuestion())
       setStep('interval')
       setIntervalWasCorrect(true)
       setFeedback(null)
@@ -311,18 +325,24 @@ function QualityTraining({ onHome }: { onHome: () => void }) {
   }
 
   const total = score.correct + score.wrong
-  const qualityOptions = qualityOptionsFor(question.interval)
+  const qualityOptions = advanced
+    ? advancedQualityOptionsFor(question.interval)
+    : qualityOptionsFor(question.interval)
 
   return (
     <main className="app-shell">
       <Header showBack onHome={goHome} />
       <section className="content-grid">
         <div className="main-column">
-          <div className="eyebrow"><span className="live-dot" /> INTERVALL BESTIMMEN <span className="eyebrow-line" /></div>
+          <div className="eyebrow"><span className="live-dot" /> {advanced ? 'INTERVALL BESTIMMEN · ERWEITERT' : 'INTERVALL BESTIMMEN'} <span className="eyebrow-line" /></div>
           <div className="title-row">
             <div>
               <h1>Erst zählen,<br /><em>dann bestimmen.</em></h1>
-              <p className="intro">Bestimme zuerst die Notenstufen, danach die Qualität des Intervalls.</p>
+              <p className="intro">
+                {advanced
+                  ? 'Bestimme zuerst die Notenstufen, danach die erweiterte Qualität des Intervalls.'
+                  : 'Bestimme zuerst die Notenstufen, danach die Qualität des Intervalls.'}
+              </p>
             </div>
             <div className="score-card" aria-label={`Richtig ${score.correct}, falsch ${score.wrong}`}>
               <span>DEINE ANTWORTEN</span>
@@ -397,7 +417,11 @@ function QualityTraining({ onHome }: { onHome: () => void }) {
           <div className="score-line"><span>Falsch</span><strong>{score.wrong}</strong></div>
           <div className="score-total">{total === 1 ? '1 Intervall' : `${total} Intervalle`}</div>
           <div className="score-rule" />
-          <p>Bei Quarte und Quinte kann das Intervall rein oder ein Tritonus sein.</p>
+          <p>
+            {advanced
+              ? 'Bei Quarte und Quinte heißt das Intervall mit sechs Halbtonschritten Tritonus.'
+              : 'Quarten und Quinten sind in dieser Übung immer rein.'}
+          </p>
         </aside>
       </section>
       <footer><span>{total === 1 ? '1 INTERVALL' : `${total} INTERVALLE`}</span><span className="footer-note">Gezählt wird die vollständige Aufgabe.</span></footer>
@@ -545,6 +569,7 @@ export default function App() {
       <Home
         onStartBasic={() => startTraining('training')}
         onStartQuality={() => startTraining('quality-training')}
+        onStartQualityCopy={() => startTraining('quality-training-copy')}
         onStartMaster={() => startTraining('master-training')}
       />
     )
@@ -556,6 +581,10 @@ export default function App() {
 
   if (screen === 'quality-training') {
     return <QualityTraining key={session} onHome={() => setScreen('home')} />
+  }
+
+  if (screen === 'quality-training-copy') {
+    return <QualityTraining key={session} onHome={() => setScreen('home')} advanced />
   }
 
   return <MasterTraining key={session} onHome={() => setScreen('home')} />

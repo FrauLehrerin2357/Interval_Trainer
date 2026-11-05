@@ -124,11 +124,21 @@ export function qualityOptionsFor(interval: IntervalNumber): IntervalQuality[] {
   if (interval === 2 || interval === 3 || interval === 6 || interval === 7) {
     return ['minor', 'major']
   }
-  return ['pure', 'tritone']
+  return ['pure']
+}
+
+export function advancedQualityOptionsFor(interval: IntervalNumber): IntervalQuality[] {
+  if (interval === 1 || interval === 8) return ['diminished', 'pure', 'augmented']
+  if (interval === 2 || interval === 3 || interval === 6 || interval === 7) {
+    return ['minor', 'major']
+  }
+  if (interval === 4) return ['diminished', 'pure', 'tritone']
+  return ['tritone', 'pure', 'augmented']
 }
 
 export function createQualityQuestion(): QualityQuestion {
-  const profile = qualityProfiles[Math.floor(Math.random() * qualityProfiles.length)]
+  const profiles = qualityProfiles.filter((profile) => profile.quality !== 'tritone')
+  const profile = profiles[Math.floor(Math.random() * profiles.length)]
   const interval = profile.intervals[Math.floor(Math.random() * profile.intervals.length)]
   const lowerLetterIndex = Math.floor(Math.random() * letters.length)
   const upperLetterIndex = lowerLetterIndex + interval - 1
@@ -254,6 +264,18 @@ export function createMasterQuestion(): MasterQuestion {
     quality: profile.quality,
     answerInterval: profile.answerInterval,
     fullName: profile.fullName,
+  }
+}
+
+export function createAdvancedQuestion(): QualityQuestion {
+  const question = createMasterQuestion()
+  const isTritone = question.answerInterval === 'tritone'
+  return {
+    lower: question.lower,
+    upper: question.upper,
+    interval: question.interval,
+    quality: isTritone ? 'tritone' : question.quality,
+    fullName: isTritone ? 'Tritonus' : question.fullName,
   }
 }
 
