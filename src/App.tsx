@@ -23,20 +23,26 @@ import {
 } from './domain'
 
 type Screen = 'home' | 'training' | 'quality-training' | 'quality-training-copy' | 'master-training'
+type Clef = 'treble' | 'bass'
 type Feedback = { correct: boolean; selected: IntervalNumber }
 type QualityFeedback =
   | { step: 'interval'; correct: boolean; selected: IntervalNumber }
   | { step: 'quality'; correct: boolean; selected: IntervalQuality }
 
-function createStaveNote(source: Note) {
-  const note = new StaveNote({ keys: [`${source.letter}/${source.octave}`], duration: 'w' })
+function staveKey(source: Note, clef: Clef) {
+  const octave = clef === 'bass' ? source.octave - 1 : source.octave
+  return `${source.letter}/${octave}`
+}
+
+function createStaveNote(source: Note, clef: Clef) {
+  const note = new StaveNote({ keys: [staveKey(source, clef)], duration: 'w', clef })
   if (source.accidental !== 0) {
     note.addModifier(new Accidental(source.accidental === -1 ? 'b' : '#'), 0)
   }
   return note
 }
 
-function Staff({ question }: { question: IntervalQuestion }) {
+function Staff({ question, clef = 'treble' }: { question: IntervalQuestion; clef?: Clef }) {
   const staffRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,16 +60,17 @@ function Staff({ question }: { question: IntervalQuestion }) {
         const staveWidth = Math.max(width - 20, 240)
         const staveX = (width - staveWidth) / 2
         const stave = new Stave(staveX, 42, staveWidth)
-        stave.addClef('treble').setContext(context).draw()
+        stave.addClef(clef).setContext(context).draw()
         stave.setNoteStartX(staveX + Math.min(102, staveWidth * 0.25))
 
         const notes = [question.lower, question.upper]
         const isPrime = question.interval === 1
         const tickables = isPrime
-          ? notes.map(createStaveNote)
+          ? notes.map((note) => createStaveNote(note, clef))
           : [new StaveNote({
-              keys: notes.map((item) => `${item.letter}/${item.octave}`),
+              keys: notes.map((item) => staveKey(item, clef)),
               duration: 'w',
+              clef,
             })]
         if (!isPrime) {
           notes.forEach((item, index) => {
@@ -86,9 +93,16 @@ function Staff({ question }: { question: IntervalQuestion }) {
     const observer = new ResizeObserver(drawStaff)
     observer.observe(element)
     return () => observer.disconnect()
-  }, [question])
+  }, [question, clef])
 
-  return <div className="staff" ref={staffRef} role="img" aria-label="Zwei Noten im Violinschlüssel" />
+  return (
+    <div
+      className="staff"
+      ref={staffRef}
+      role="img"
+      aria-label={`Zwei Noten im ${clef === 'treble' ? 'Violinschlüssel' : 'Bassschlüssel'}`}
+    />
+  )
 }
 
 function Header({ onHome, showBack }: { onHome?: () => void; showBack?: boolean }) {
@@ -136,7 +150,7 @@ function Home({ onStartBasic, onStartQuality, onStartQualityCopy, onStartMaster 
             <span className="card-symbol card-accidentals" aria-hidden="true">♯♭</span>
             <span className="card-copy">
               <strong>Intervall bestimmen</strong>
-              <small>Stammintervall und Qualität erkennen</small>
+              <small>Stammintervall und Qualität im Violin- oder Bassschlüssel erkennen</small>
             </span>
             <span className="card-arrow" aria-hidden="true">→</span>
           </button>
@@ -267,10 +281,19 @@ function Training({ onHome }: { onHome: () => void }) {
   )
 }
 
-function QualityTraining({ onHome, advanced = false }: { onHome: () => void; advanced?: boolean }) {
+function QualityTraining({
+  onHome,
+  advanced = false,
+  showClefSwitch = false,
+}: {
+  onHome: () => void
+  advanced?: boolean
+  showClefSwitch?: boolean
+}) {
   const [question, setQuestion] = useState<QualityQuestion>(
     () => advanced ? createAdvancedQuestion() : createQualityQuestion(),
   )
+  const [clef, setClef] = useState<Clef>('treble')
   const [step, setStep] = useState<'interval' | 'quality'>('interval')
   const [feedback, setFeedback] = useState<QualityFeedback | null>(null)
   const [intervalWasCorrect, setIntervalWasCorrect] = useState(true)
@@ -356,8 +379,29 @@ function QualityTraining({ onHome, advanced = false }: { onHome: () => void; adv
             <div className="progress-track"><i style={{ width: step === 'interval' ? '50%' : '100%' }} /></div>
           </div>
           <div className="practice-panel">
-            <div className="panel-label"><span>VIOLINSCHLÜSSEL</span><span>AUFSTEIGEND</span></div>
-            <Staff question={question} />
+            <div className="panel-label">
+              <span>{clef === 'treble' ? 'VIOLINSCHLÜSSEL' : 'BASSSCHLÜSSEL'}</span>
+              {showClefSwitch && (
+                <div className="clef-switch" role="group" aria-label="Notenschlüssel wählen">
+                  <button
+                    type="button"
+                    aria-pressed={clef === 'treble'}
+                    onClick={() => setClef('treble')}
+                  >
+                    Violin
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={clef === 'bass'}
+                    onClick={() => setClef('bass')}
+                  >
+                    Bass
+                  </button>
+                </div>
+              )}
+              <span>AUFSTEIGEND</span>
+            </div>
+            <Staff question={question} clef={clef} />
             <div className="staff-caption" aria-live="polite">
               {feedback?.step === 'interval'
                 ? `${feedback.correct ? 'Richtig' : 'Noch nicht'}: Das Stammintervall ist die ${intervalNames[question.interval]}.`
@@ -430,7 +474,8 @@ function QualityTraining({ onHome, advanced = false }: { onHome: () => void; adv
 }
 
 function MasterTraining({ onHome }: { onHome: () => void }) {
-  const [question, setQuestion] = useState<MasterQuestion>(() => createMasterQuestion())
+  const [question, setQuestion] = useState<MasterQuestion>(() => createMasterQuestion(true))
+  const [clef, setClef] = useState<Clef>('treble')
   const [selectedQuality, setSelectedQuality] = useState<Exclude<IntervalQuality, 'tritone'> | null>(null)
   const [selectedInterval, setSelectedInterval] = useState<MasterIntervalAnswer | null>(null)
   const [feedback, setFeedback] = useState<boolean | null>(null)
@@ -454,7 +499,7 @@ function MasterTraining({ onHome }: { onHome: () => void }) {
       wrong: current.wrong + Number(!correct),
     }))
     transitionTimer.current = window.setTimeout(() => {
-      setQuestion(createMasterQuestion())
+      setQuestion(createMasterQuestion(true))
       setSelectedQuality(null)
       setSelectedInterval(null)
       setFeedback(null)
@@ -489,8 +534,27 @@ function MasterTraining({ onHome }: { onHome: () => void }) {
             </div>
           </div>
           <div className="practice-panel">
-            <div className="panel-label"><span>VIOLINSCHLÜSSEL</span><span>INTERVALL ERKENNEN</span></div>
-            <Staff question={question} />
+            <div className="panel-label">
+              <span>{clef === 'treble' ? 'VIOLINSCHLÜSSEL' : 'BASSSCHLÜSSEL'}</span>
+              <div className="clef-switch" role="group" aria-label="Notenschlüssel wählen">
+                <button
+                  type="button"
+                  aria-pressed={clef === 'treble'}
+                  onClick={() => setClef('treble')}
+                >
+                  Violin
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={clef === 'bass'}
+                  onClick={() => setClef('bass')}
+                >
+                  Bass
+                </button>
+              </div>
+              <span>INTERVALL ERKENNEN</span>
+            </div>
+            <Staff question={question} clef={clef} />
             <div className="staff-caption" aria-live="polite">
               {feedback === null
                 ? 'Wähle je eine Antwort aus beiden Spalten.'
@@ -580,11 +644,11 @@ export default function App() {
   }
 
   if (screen === 'quality-training') {
-    return <QualityTraining key={session} onHome={() => setScreen('home')} />
+    return <QualityTraining key={session} onHome={() => setScreen('home')} showClefSwitch />
   }
 
   if (screen === 'quality-training-copy') {
-    return <QualityTraining key={session} onHome={() => setScreen('home')} advanced />
+    return <QualityTraining key={session} onHome={() => setScreen('home')} advanced showClefSwitch />
   }
 
   return <MasterTraining key={session} onHome={() => setScreen('home')} />

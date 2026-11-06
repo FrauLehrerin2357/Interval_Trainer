@@ -63,6 +63,10 @@ h1 em { color: #d26d4d; font-style: italic; }
 .practice-panel::after { position: absolute; top: -92px; right: -72px; width: 225px; height: 225px; border: 1px solid #f0e9dc; border-radius: 50%; content: ''; pointer-events: none; }
 .panel-label { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 12px; }
 .panel-label span:last-child { color: #b0ada3; font-weight: 400; }
+.clef-switch { display: flex; gap: 2px; padding: 2px; border: 1px solid #ded6c9; background: #f4f0e8; letter-spacing: 0; }
+.clef-switch button { padding: 4px 9px; border: 0; background: transparent; color: #78827d; font: 600 10px 'DM Sans', sans-serif; }
+.clef-switch button[aria-pressed='true'] { background: #fffdf8; color: #d26d4d; box-shadow: 0 1px 3px rgba(76, 65, 50, .12); }
+.clef-switch button:focus-visible { outline-offset: 1px; }
 .staff { position: relative; z-index: 1; width: 100%; height: 205px; margin: 11px auto 0; }
 .staff svg { display: block; width: 100%; height: 205px; }
 .staff-caption { position: relative; z-index: 1; min-height: 20px; color: #78827d; font: 12px/1.5 'DM Sans', sans-serif; text-align: center; }
@@ -106,6 +110,8 @@ footer { display: flex; gap: 25px; padding: 19px clamp(24px, 6vw, 92px); border-
   .score-card strong { font-size: 24px; }
   .practice-panel { min-height: 275px; padding: 19px 13px 12px; }
   .staff { margin-top: 10px; }
+  .clef-switch { gap: 0; }
+  .clef-switch button { padding: 4px 6px; font-size: 9px; }
   .answer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .quality-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .master-columns { grid-template-columns: minmax(0, 1fr); gap: 17px; }

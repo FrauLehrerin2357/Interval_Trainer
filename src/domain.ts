@@ -231,8 +231,22 @@ const masterProfiles: Array<{
   { interval: 8, answerInterval: 8, quality: 'augmented', semitones: 13, fullName: 'Übermäßige Oktave' },
 ]
 
-export function createMasterQuestion(): MasterQuestion {
-  const profile = masterProfiles[Math.floor(Math.random() * masterProfiles.length)]
+const extendedMasterProfiles: typeof masterProfiles = [
+  { interval: 2, answerInterval: 2, quality: 'diminished', semitones: 0, fullName: 'Verminderte Sekunde' },
+  { interval: 2, answerInterval: 2, quality: 'augmented', semitones: 3, fullName: 'Übermäßige Sekunde' },
+  { interval: 3, answerInterval: 3, quality: 'diminished', semitones: 2, fullName: 'Verminderte Terz' },
+  { interval: 3, answerInterval: 3, quality: 'augmented', semitones: 5, fullName: 'Übermäßige Terz' },
+  { interval: 6, answerInterval: 6, quality: 'diminished', semitones: 7, fullName: 'Verminderte Sexte' },
+  { interval: 6, answerInterval: 6, quality: 'augmented', semitones: 10, fullName: 'Übermäßige Sexte' },
+  { interval: 7, answerInterval: 7, quality: 'diminished', semitones: 9, fullName: 'Verminderte Septime' },
+  { interval: 7, answerInterval: 7, quality: 'augmented', semitones: 12, fullName: 'Übermäßige Septime' },
+]
+
+export function createMasterQuestion(includeExtendedQualities = false): MasterQuestion {
+  const profiles = includeExtendedQualities
+    ? [...masterProfiles, ...extendedMasterProfiles]
+    : masterProfiles
+  const profile = profiles[Math.floor(Math.random() * profiles.length)]
   const lowerLetterIndex = Math.floor(Math.random() * letters.length)
   const upperLetterIndex = lowerLetterIndex + profile.interval - 1
   const lowerLetter = letters[lowerLetterIndex]
